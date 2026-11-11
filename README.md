@@ -144,6 +144,39 @@ Et dans `ecommerce/urls.py` servir les fichiers médias en développement (voir 
 
 ---
 
+## Déploiement Azure App Service (Django + SQLite)
+
+Le repo est prêt pour un déploiement **App Service Linux (Python)** via GitHub Actions.
+
+### Fichiers liés
+- `requirements.txt` : Django 6.0.3 + gunicorn + whitenoise.
+- `startup.txt` : commande de démarrage Oryx (migrate → collectstatic → gunicorn).
+- `.github/workflows/deploy-azure.yml` : CI/CD — chaque push sur `main` redéploie.
+
+### À faire une fois (portail Azure)
+1. **App Service** → Create → *Publish = Code*, *Runtime = Python 3.12+,* *Plan = Free (F1)* pour un test.
+2. **Configuration → Startup** : Oryx lit `startup.txt` automatiquement.
+3. **Configuration → Application settings** :
+   | Clé | Valeur |
+   |---|---|
+   | `ALLOWED_HOSTS` | `<ton-app>.azurewebsites.net` |
+   | `SECRET_KEY` | génère un secret : `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"` |
+   | `DEBUG` | `False` |
+   | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `true` (Oryx construit depuis le zip) |
+   | `WEBSITES_PORT` | `8000` |
+4. **Deployment Center → GitHub** (ou le workflow GA ci-dessous).
+
+### GitHub Actions (option plus propre)
+1. Télécharge le **publish profile** (App Service → Overview → *Get publish profile*).
+2. GitHub → **Settings → Secrets → Actions** → nouvelle secret `AZURE_WEBAPP_PUBLISH_PROFILE` ← colle-le.
+3. Renomme `AZURE_WEBAPP_NAME` dans le workflow si ton app a un autre nom.
+4. Chaque push sur `main` déploie (*workflow_dispatch* pour relancer à la main).
+
+### Base SQLite
+Pense que le disque d'App Service est **éphémère** : la `db.sqlite3` est remise à zéro à chaque redéploiement. Pour du permanent par la suite : base managée (PostgreSQL/MySQL Azure) ou partage Azure Files.
+
+---
+
 ## Licence
 
 Par défaut : **MIT** (ou choisis celle que tu veux). Ajoute un `LICENSE` si tu souhaites partager publiquement.

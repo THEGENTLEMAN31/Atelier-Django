@@ -1,0 +1,35 @@
+name: Deploy Atelier-Django sur Azure App Service
+
+# Déploie automatiquement chaque push sur `main` (et à la demande).
+# Principe : le code source est envoyé à l'App Service, qui le construit
+# avec Oryx (lit requirements.txt + startup.txt) — aucune image Docker.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**"
+      - "!README.md"
+  workflow_dispatch: # bouton "Run workflow" dans GitHub
+
+env:
+  AZURE_WEBAPP_NAME: atelier-django-app   # nom de ton App Service Azure
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Déploiement (zip -> App Service / Oryx)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          slot-name: production
+          # Le publish profile est stocké en GitHub > Settings > Secrets.
+          # Sans lui, le workflow est inoffensif mais échoue au déploiement.
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
